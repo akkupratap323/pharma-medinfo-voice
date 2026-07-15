@@ -1,0 +1,20 @@
+[Unit]
+Description=Synthio LightRAG — HCP scope (full prescribing information)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/synthio/lightrag_local
+# Reads OpenAI key + LIGHTRAG_API_KEY from lightrag_local/.env (see bootstrap.sh)
+ExecStart=/opt/synthio/.lightrag-venv/bin/lightrag-server \
+  --host 127.0.0.1 --port 9621 \
+  --working-dir ./rag_storage_hcp --workspace hcp
+Restart=always
+RestartSec=5
+# Small-box memory guard
+MemoryMax=500M
+
+[Install]
+WantedBy=multi-user.target

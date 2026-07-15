@@ -1,0 +1,34 @@
+# Synthio Voice AI — reverse proxy + static frontend + auto-HTTPS.
+#
+# SITE_ADDRESS is set by bootstrap.sh to your dummy domain, e.g.
+#   54-153-10-20.sslip.io   (sslip.io resolves <ip>.sslip.io -> that IP, and
+#   Caddy gets a real Let's Encrypt cert for it -> valid HTTPS -> mic works).
+#
+# Caddy serves the built frontend (client/dist) and reverse-proxies the API +
+# WebSocket to the FastAPI backend on 127.0.0.1:7860.
+
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# --- Backend API + WebSocket ---
+	# `handle` blocks are mutually exclusive, so API paths reach the backend
+	# BEFORE the static file_server's try_files rewrite can swallow them
+	# (a plain reverse_proxy + try_files together misroutes /health etc.).
+	# reverse_proxy upgrades /ws to a WebSocket automatically.
+	@api path /ws /connect /health /personas /status /vad-mode /insights /insights/* /a2ui/* /graph/*
+	handle @api {
+		reverse_proxy 127.0.0.1:7860 {
+			# Long-lived voice WebSockets: don't buffer or time out mid-call.
+			flush_interval -1
+		}
+	}
+
+	# --- Static frontend (Vite build), SPA fallback ---
+	handle {
+		root * /opt/synthio/client/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	header /config.js Cache-Control "no-store"
+}

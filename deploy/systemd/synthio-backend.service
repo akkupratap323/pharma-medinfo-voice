@@ -1,0 +1,22 @@
+[Unit]
+Description=Synthio Voice AI — FastAPI backend (voice pipeline)
+After=network-online.target synthio-lightrag-hcp.service synthio-lightrag-patient.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/synthio
+Environment=PYTHONPATH=/opt/synthio
+# NO_PROXY is REQUIRED so httpx reaches the local LightRAG servers directly.
+# Loads the rest of the keys from /opt/synthio/.env via python-dotenv.
+Environment=NO_PROXY=localhost,127.0.0.1
+Environment=no_proxy=localhost,127.0.0.1
+ExecStart=/opt/synthio/.venv/bin/python app/main.py
+Restart=always
+RestartSec=5
+# torch/sentence-transformers no longer load, so the backend is lean.
+MemoryMax=900M
+
+[Install]
+WantedBy=multi-user.target

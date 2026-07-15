@@ -1,0 +1,18 @@
+[Unit]
+Description=Synthio LightRAG — patient scope (patient-directed sections only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/synthio/lightrag_local
+ExecStart=/opt/synthio/.lightrag-venv/bin/lightrag-server \
+  --host 127.0.0.1 --port 9622 \
+  --working-dir ./rag_storage_patient --workspace patient
+Restart=always
+RestartSec=5
+MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target
