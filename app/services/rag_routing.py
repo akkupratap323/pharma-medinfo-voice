@@ -29,6 +29,16 @@ FACTUAL_LOOKUP_RE = re.compile(
 # exact onl-05 failure. Narrow retrieval keeps Section 4 dominant in context.
 CONTRAINDICATION_RE = re.compile(r"\bcontraindicat\w+\b", re.IGNORECASE)
 
+# Dosing-SPECIFIC questions — a strict subset of factual lookups. Used to decide
+# the VISUAL card: a dosing table (Section 2) must only render for a real dosing
+# question, never for a contraindication/storage/admin answer that merely happens
+# to contain a mg figure (that mis-cited Section 4 answers as a Section-2 table).
+DOSING_RE = re.compile(
+    r"\b(dos(?:e|es|ing|age)|milligram|loading dose|maintenance dose|maintenance|"
+    r"how (?:much|many mg)|q2w|q4w|every \w+ weeks?|weight[- ]based|\d+\s*mg)\b",
+    re.IGNORECASE,
+)
+
 # Retrieval params for the verbatim path (raw chunks, wider net) — good for dosing,
 # where breadth is needed to surface the right population block with exact figures.
 VERBATIM_TOP_K = 12
@@ -92,6 +102,13 @@ def is_factual_lookup(question: str) -> bool:
 
 def is_contraindication_lookup(question: str) -> bool:
     return bool(CONTRAINDICATION_RE.search(question or ""))
+
+
+def is_dosing_lookup(question: str) -> bool:
+    """True only for genuine dosing questions — gates the dosing-table card so a
+    contraindication/storage answer never renders as a Section-2 dosing table."""
+    q = question or ""
+    return bool(DOSING_RE.search(q)) and not CONTRAINDICATION_RE.search(q)
 
 
 def retrieval_policy(question: str) -> dict:

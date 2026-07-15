@@ -46,7 +46,7 @@ _RAG_NO_CONTEXT_RE = re.compile(
 
 # High-stakes factual-lookup routing lives in ONE place shared with the eval
 # harness, so the two can never diverge (see app/services/rag_routing.py).
-from app.services.rag_routing import retrieval_policy
+from app.services.rag_routing import retrieval_policy, is_dosing_lookup
 
 # NOTE: SmartTurn v3 was removed here — Deepgram Flux does native end-of-turn
 # detection, so this eager import (which pulled ~600MB of PyTorch at startup) is
@@ -725,13 +725,20 @@ class ConversationManager:
         logger.info(f"🔎 RAG returned {len(answer)} chars for scope='{scope}' "
                     f"(verbatim={verbatim})")
 
-        # Deterministic visual proof of the answer. Prefer a structured dosing TABLE
-        # when the retrieved text is dosing content (self-gates: returns None
-        # otherwise); fall back to the plain cited-section card. Built from the
-        # retrieved text itself, so the card can never disagree with what was said.
+        # Deterministic visual proof of the answer, built from the retrieved text so
+        # the card can never disagree with what was said. Show the structured dosing
+        # TABLE (Section 2) ONLY for a genuine dosing question — otherwise a
+        # contraindication/storage answer that merely contains a mg figure would be
+        # mis-rendered as a Section-2 dosing table. Everything else uses the plain
+        # cited-section card, which reads its section from the retrieved text (so a
+        # contraindication answer is correctly cited as Section 4).
         try:
             from app.services.a2ui.pharma_cards import label_citation_card, dosing_table_card
-            card = dosing_table_card(answer) or label_citation_card(answer, scope=scope)
+            card = None
+            if is_dosing_lookup(question):
+                card = dosing_table_card(answer)
+            if card is None:
+                card = label_citation_card(answer, scope=scope)
             await self._emit_a2ui(card)
         except Exception as exc:  # noqa: BLE001 - visual is best-effort
             logger.error(f"label card failed (non-fatal): {exc}")
