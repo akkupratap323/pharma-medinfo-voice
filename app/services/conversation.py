@@ -486,13 +486,13 @@ class ConversationManager:
 
         Flow:
         1. Old agent already said "Let me connect you with X" (LLM output before function call)
-        2. We switch voice + system prompt
-        3. We push the new agent's pickup line directly to TTS (no LLM round-trip)
-        4. We inject a handoff context message so the new agent has continuity
-        5. Return "" to prevent the LLM from generating a duplicate response
+        2. We switch voice + system prompt and inject a handoff context message
+        3. We return a directive as the function result so the NEW agent's LLM speaks
+           next — it introduces itself briefly AND continues the routed task. Because
+           this goes through the normal LLM->TTS path, it is queued AFTER the old
+           agent's connecting line (no voice overlap) and in the new agent's voice.
         """
         import asyncio
-        import random
 
         target_agent_id = params.arguments.get("agent_id", "").strip()
         logger.info(f"🔄 Transfer requested to agent: {target_agent_id}")
@@ -569,38 +569,40 @@ class ConversationManager:
         except Exception as exc:  # noqa: BLE001 - visual is best-effort
             logger.error(f"handoff-timeline card failed (non-fatal): {exc}")
 
-        # Trigger voice switch and frontend notification via callback
+        # Let the outgoing agent's connecting line finish synthesizing in ITS voice
+        # before we switch, so the tail of "let me connect you..." never comes out
+        # in the new agent's voice.
+        await asyncio.sleep(0.3)
+
+        # Now switch the TTS voice + notify the frontend for the incoming agent.
+        # The switch applies to what the new agent says next (below).
         if self._on_agent_transfer:
             await self._on_agent_transfer(target_agent_id, target_persona)
 
-        # Wait briefly for voice switch to take effect before speaking
-        await asyncio.sleep(0.3)
-
-        # Push new agent's pickup line directly to TTS (bypasses LLM, prevents double-speak)
-        if self.tts_service:
-            # Build a contextual pickup line (not just a generic greeting)
-            if last_user_msg:
-                pickup_lines = [
-                    f"Hey, I'm {target_name}. {old_name} filled me in — let me help you with that.",
-                    f"Hi! {target_name} here. I heard what you were asking about — let me take it from here.",
-                    f"Hey, {target_name} here. I've got the context from {old_name} — let me jump right in.",
-                ]
-            else:
-                pickup_lines = [
-                    f"Hey, I'm {target_name}. How can I help you?",
-                    f"Hi! {target_name} here. What can I do for you?",
-                ]
-            pickup = random.choice(pickup_lines)
-            await self.tts_service.queue_frame(TTSSpeakFrame(pickup))
-            logger.info(f"📢 Pushed pickup line to TTS: '{pickup}'")
-
-            # Add the pickup to conversation context so LLM knows it was said
-            if self.context:
-                self.context.messages.append({"role": "assistant", "content": pickup})
-
-        # Return empty to prevent LLM from generating a duplicate response
-        await params.result_callback("")
-        logger.info(f"✅ Transfer to {target_name} complete")
+        # Hand control to the NEW agent's LLM by returning a directive as the
+        # function result (not "" and not a canned TTS line). The LLM then speaks
+        # with the new persona's prompt + voice, so it:
+        #   - plays AFTER the outgoing connecting line (normal LLM->TTS ordering,
+        #     no overlap), and
+        #   - immediately continues the task it was routed for instead of asking a
+        #     generic "how can I help you?".
+        pickup_directive = (
+            f"You are now {target_name}. Say ONE short line to greet the caller, then "
+            f"immediately continue the task {old_name} routed to you"
+        )
+        if last_user_msg:
+            pickup_directive += (
+                f" — the caller was asking: \"{last_user_msg}\". Address that right now "
+                f"(call call_rag_system first if you need the label to answer)."
+            )
+        else:
+            pickup_directive += "."
+        pickup_directive += (
+            f" Do NOT ask what they need or say 'how can I help you' — you already know "
+            f"why the call reached you. Do not repeat what {old_name} already said."
+        )
+        await params.result_callback(pickup_directive)
+        logger.info(f"✅ Transfer to {target_name} complete — new agent continuing the task")
 
     def _current_rag_scope(self) -> str:
         """Resolve the RAG audience scope for the ACTIVE persona.
