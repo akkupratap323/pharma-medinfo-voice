@@ -138,7 +138,7 @@ def compliance_badge_card(classification: str) -> Dict[str, Any]:
 
 
 def handoff_timeline_card(trail: list) -> Dict[str, Any]:
-    """Timeline of the call's agent routing: Riya -> Maya -> Sam, with reasons.
+    """Timeline of the call's agent routing: Grace -> Claire -> Sam, with reasons.
     `trail` is a list of {agent, role, reason} dicts (reason optional for the first)."""
     return {
         "version": "1.0",

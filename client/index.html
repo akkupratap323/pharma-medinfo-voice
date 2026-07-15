@@ -105,35 +105,10 @@
       </div>
     </header>
 
-    <!-- Mission Control Dashboard Panel (slides up from bottom) -->
-    <div class="dashboard-grid" id="dashboard-grid" aria-hidden="true">
-      <section class="mc-panel">
-        <div class="mc-panel-grid mc-panel-grid--emotion-only">
-          <!-- EMOTION ANALYSIS (full width, centered) -->
-          <div class="mc-col-center mc-col-center--full">
-            <div class="dashboard-card mc-card-emotion mc-card-emotion--hero" id="dashboard-card-4">
-              <div class="dashboard-card-header">
-                <span class="dashboard-card-label">EMOTION ANALYSIS</span>
-              </div>
-              <div class="dashboard-card-body">
-                <div id="emotion-analysis-root" class="dashboard-card-inner emotion-analysis-topic"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-
     <!-- Conversation Analysis (hidden, kept for data) -->
     <div class="hidden" id="dashboard-card-1">
       <div id="synchronized-analysis-root" class="dashboard-card-inner"></div>
     </div>
-
-    <!-- Legacy left panel (hidden when dashboard shown) -->
-    <aside class="left-panel legacy-panel">
-      <div class="panel emotion-panel hidden" id="emotion-panel-legacy"></div>
-      <div class="panel knowledge-graph-panel hidden" id="knowledge-graph-legacy"></div>
-    </aside>
 
     <!-- CENTER: Voice Interaction Space -->
     <section class="center-section">
@@ -197,31 +172,14 @@
                 <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path>
               </svg>
             </button>
-            <div class="pill-divider hide-on-mobile"></div>
-            <!-- Peek -->
-            <button type="button" class="pill-btn pill-btn-peek hide-on-mobile" id="control-peak" aria-label="Peek view">
-              <span class="pill-btn-label">Peek</span>
-              <svg fill="none" height="18" width="18" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>
-            </button>
           </div>
-          <div class="close-options-group" id="close-options-group" aria-label="Restart or Peek">
+          <div class="close-options-group" id="close-options-group" aria-label="Restart">
             <button type="button" class="pill-btn pill-btn-icon" id="close-option-restart" aria-label="Restart">
               <svg fill="none" height="18" width="18" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M1 4v6h6M23 20v-6h-6" stroke-linecap="round" stroke-linejoin="round"></path>
                 <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" stroke-linecap="round" stroke-linejoin="round"></path>
               </svg>
               <span class="pill-btn-label">Restart</span>
-            </button>
-            <div class="pill-divider hide-on-mobile"></div>
-            <button type="button" class="pill-btn pill-btn-peek hide-on-mobile" id="close-option-peak" aria-label="Peek">
-              <span class="pill-btn-label">Peek</span>
-              <svg fill="none" height="18" width="18" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>
             </button>
           </div>
         </div>
@@ -264,25 +222,6 @@
     </aside>
 
   </main>
-
-  <!-- Expanded Emotion Analysis Modal (click on Emotion card in Peek mode) -->
-  <div class="emotion-expanded-overlay" id="emotion-expanded-overlay">
-    <div class="emotion-expanded-modal">
-      <div class="emotion-expanded-header">
-        <span class="emotion-expanded-title">EMOTION ANALYSIS</span>
-        <div class="emotion-expanded-legend">
-          <span class="emotion-expanded-legend-item"><span class="emotion-expanded-dot cyan"></span>Valence</span>
-          <span class="emotion-expanded-legend-item"><span class="emotion-expanded-dot orange"></span>Arousal</span>
-          <span class="emotion-expanded-legend-item"><span class="emotion-expanded-dot purple"></span>Dominance</span>
-          <span class="emotion-expanded-legend-item"><span class="emotion-expanded-dot green"></span>Engagement</span>
-          <span class="emotion-expanded-legend-item"><span class="emotion-expanded-dot blue"></span>Stability</span>
-        </div>
-      </div>
-      <div class="emotion-expanded-body">
-        <div id="emotion-analysis-expanded-root"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- Debug Panel (Hidden by default) -->
   <div class="debug-panel" id="debug-panel">

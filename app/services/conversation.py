@@ -132,7 +132,7 @@ class ConversationManager:
 
         # RAG (LightRAG) state — audience-scoped knowledge retrieval.
         # Services are built lazily per scope ("hcp"/"patient") and cached, so a
-        # live transfer (e.g. Maya -> Priya) resolves to the correct workspace.
+        # live transfer (e.g. Claire -> Sophie) resolves to the correct workspace.
         self.rag_config = rag_config or {}
         self._rag_services: Dict[str, Any] = {}
 
@@ -553,7 +553,7 @@ class ConversationManager:
         # Update current persona tracking
         self.current_persona_id = target_agent_id
 
-        # Record the routing step and push the handoff-timeline card (Riya -> Maya
+        # Record the routing step and push the handoff-timeline card (Grace -> Claire
         # -> Sam, with the reason). Seed the trail with the origin agent on first hop.
         try:
             from app.services.a2ui.pharma_cards import handoff_timeline_card
@@ -606,7 +606,7 @@ class ConversationManager:
         """Resolve the RAG audience scope for the ACTIVE persona.
 
         Read dynamically (not cached) so a live transfer switches scope correctly:
-        Maya/Alex -> "hcp" (full label), Priya -> "patient" (patient sections).
+        Claire/Alex -> "hcp" (full label), Sophie -> "patient" (patient sections).
         Returns "" for personas with no rag_scope (triage, drug_safety, trial).
         """
         if not self.rag_config.get("enabled"):

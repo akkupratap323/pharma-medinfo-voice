@@ -635,10 +635,9 @@ class VoiceScannerApp {
     this.debugToggle?.addEventListener('click', () => this.toggleDebugPanel());
     this.debugClose?.addEventListener('click', () => this.hideDebugPanel());
 
-    document.getElementById('control-peak')?.addEventListener('click', () => this.toggleSidePanels());
     document.getElementById('control-close')?.addEventListener('click', () => {
       this.hideA2UIPanel();
-      this.showCloseOptions(); // Switch bar to Restart | Peek so user can restart or peek
+      this.showCloseOptions(); // Switch bar to the Restart option
       this.handleDisconnect();
     });
     document.getElementById('control-speaker')?.addEventListener('click', () => this.toggleSpeakerIcon());
@@ -646,42 +645,11 @@ class VoiceScannerApp {
     document.getElementById('control-nc')?.addEventListener('click', () => this.toggleNoiseCancellation());
 
     document.getElementById('close-option-restart')?.addEventListener('click', () => this.onRestartOption());
-    document.getElementById('close-option-peak')?.addEventListener('click', () => this.onPeakOption());
 
     // Back button (top-left of the call screen) — end the call and return to the agent picker.
-    document.getElementById('session-back-btn')?.addEventListener('click', () => this.onRestartOption());
-
-    // Expanded Emotion Analysis: click card to show modal, click backdrop or press Esc to close
-    const emotionCard = document.getElementById('dashboard-card-4');
-    const emotionOverlay = document.getElementById('emotion-expanded-overlay');
-    console.log('[EmotionExpanded] emotionCard:', emotionCard, 'overlay:', emotionOverlay);
-    emotionCard?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      console.log('[EmotionExpanded] Card clicked, showExpanded:', typeof (window as any).EmotionAnalysis?.showExpanded);
-      const overlay = document.getElementById('emotion-expanded-overlay');
-      if (overlay) {
-        // Direct DOM approach as fallback
-        overlay.classList.add('visible');
-      }
-      (window as any).EmotionAnalysis?.showExpanded?.();
-    });
-    emotionOverlay?.addEventListener('click', (e) => {
-      // Close when clicking the backdrop (not the modal itself)
-      if (e.target === emotionOverlay) {
-        emotionOverlay.classList.remove('visible');
-        (window as any).EmotionAnalysis?.hideExpanded?.();
-      }
-    });
-    document.addEventListener('keydown', (e) => {
-      const overlay = document.getElementById('emotion-expanded-overlay');
-      if (e.key === 'Escape' && overlay?.classList.contains('visible')) {
-        overlay.classList.remove('visible');
-      }
-    });
+    document.getElementById('session-back-btn')?.addEventListener('click', () => this.returnToSelection());
 
     document.getElementById('a2ui-close')?.addEventListener('click', () => this.hideA2UIPanel());
-
-    this.updatePeakButtonState();
 
     // Emotion panel toggle
     this.emotionToggle?.addEventListener('click', () => this.toggleEmotionPanel());
@@ -709,18 +677,29 @@ class VoiceScannerApp {
   }
 
   /**
-   * Restart: hide cards if visible, reset all card data, hide options bar, disconnect, then connect (same flow as connect-btn)
+   * Restart: reset the conversation and start the SAME agent again (fresh call).
    */
   private async onRestartOption(): Promise<void> {
     this.hideCloseOptions();
-    // Hide all dashboard cards if they are visible (peek was open)
-    if (this.mainLayout && !this.mainLayout.classList.contains('panels-hidden')) {
-      this.mainLayout.classList.add('panels-hidden');
-      this.updatePeakButtonState();
-    }
     this.resetAllCardsData();
     await this.disconnect();
-    // Show persona selection again so user can pick a different agent
+    const personaId = this.selectedPersonaId;
+    if (personaId) {
+      // Re-run the connect flow for the same agent — it reconnects and re-greets.
+      this.selectPersona(personaId);
+    } else {
+      this.showPersonaSelection();
+    }
+  }
+
+  /**
+   * Back: end the call and return to the agent picker so the user can choose
+   * a different agent.
+   */
+  private async returnToSelection(): Promise<void> {
+    this.hideCloseOptions();
+    this.resetAllCardsData();
+    await this.disconnect();
     this.selectedPersonaId = '';
     this.showPersonaSelection();
   }

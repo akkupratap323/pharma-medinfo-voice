@@ -233,7 +233,7 @@ class SpeechToTextService:
             corrections = self.config.get("corrections", [])
 
             # Flux is English-only ("flux-general-en"). Personas that need
-            # multilingual STT (Priya's Hinglish -> stt_language "multi")
+            # multilingual STT (Sophie's Hinglish -> stt_language "multi")
             # automatically fall back to nova-3 multi for their session.
             if language in ("multi", "hi") or self.config.get("support_hinglish", False):
                 logger.warning(

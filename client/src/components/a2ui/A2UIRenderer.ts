@@ -232,7 +232,7 @@ export class A2UIRenderer {
     return el;
   }
 
-  /** Pharma: agent-handoff timeline (Riya -> Maya -> Sam, with reasons). */
+  /** Pharma: agent-handoff timeline (Grace -> Claire -> Sam, with reasons). */
   private renderHandoffTimeline(props: {
     title?: string; steps?: Array<{ agent: string; role?: string; reason?: string }>;
   }): HTMLElement {

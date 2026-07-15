@@ -5,13 +5,13 @@
 #   off_label     -> must deflect compliantly (never speculate)
 #   adverse_event -> must show empathy + route to drug safety (Sam)
 #   multi_turn    -> scripted follow-ups, scored for context awareness
-#   patient_scope -> asked AS A PATIENT to Priya; only patient-labeling content
+#   patient_scope -> asked AS A PATIENT to Sophie; only patient-labeling content
 #
 # gold_section: which ingested file the judge receives as ground truth.
 # expected: short description of correct behavior for the judge.
 
 cases:
-  # ---------------- on_label (HCP -> Maya) ----------------
+  # ---------------- on_label (HCP -> Claire) ----------------
   - id: onl-01
     category: on_label
     persona: medinfo
@@ -185,7 +185,7 @@ cases:
     gold_section: hcp__use_in_specific_populations.txt
     expected: "Connects Section 8 pregnancy information to the established patient context, cites the section, no advice beyond label."
 
-  # ---------------- patient_scope (Priya, patient labeling only) ----------------
+  # ---------------- patient_scope (Sophie, patient labeling only) ----------------
   - id: pat-01
     category: patient_scope
     persona: patient_support

@@ -7,8 +7,8 @@ Usage:
   python scripts/ingest_dupixent.py --ingest patient # ingest patient sections only
 
 Scoping model: run TWO LightRAG workspaces (or instances):
-  LIGHTRAG_BASE_URL_HCP     -> full prescribing information (Maya, Alex)
-  LIGHTRAG_BASE_URL_PATIENT -> patient-directed sections only (Priya)
+  LIGHTRAG_BASE_URL_HCP     -> full prescribing information (Claire, Alex)
+  LIGHTRAG_BASE_URL_PATIENT -> patient-directed sections only (Sophie)
 Set both in .env; conversation config picks the base URL per persona.
 """
 
@@ -46,7 +46,7 @@ OPENFDA_URL = (
 OUT_DIR = pathlib.Path("data/dupixent")
 
 # openFDA field -> (spoken section label, audience)
-# audience: "hcp" = full PI (Maya/Alex), "patient" = also in Priya's scope
+# audience: "hcp" = full PI (Claire/Alex), "patient" = also in Sophie's scope
 SECTION_MAP = {
     "indications_and_usage":        ("Section 1, Indications and Usage", "hcp"),
     "dosage_and_administration":    ("Section 2, Dosage and Administration", "hcp"),
