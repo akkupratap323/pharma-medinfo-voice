@@ -204,6 +204,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         # fail-safe (never raises), and this guard keeps session teardown bulletproof.
         try:
             cm = voice_assistant.conversation_manager if voice_assistant else None
+            msg_count = len(cm.context.messages) if (cm and cm.context and cm.context.messages) else 0
+            logger.info(f"[Session {session_id}] insight capture check: manager={'y' if cm else 'n'}, messages={msg_count}")
             if cm and cm.context and cm.context.messages:
                 transcript = "\n".join(
                     f"{'CALLER' if m.get('role') == 'user' else 'AGENT'}: {m.get('content', '')}"
@@ -219,5 +221,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                         groq_api_key=_os.getenv("GROQ_API_KEY", ""),
                         persona_id=cm.current_persona_id,
                     )
+                else:
+                    logger.info(f"[Session {session_id}] insight capture skipped: transcript empty")
         except Exception as insight_err:  # noqa: BLE001 - never break teardown
             logger.warning(f"[Session {session_id}] insight capture skipped: {insight_err}")

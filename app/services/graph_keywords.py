@@ -1,26 +1,21 @@
 """
 LLM-based keyword extraction for Knowledge Graph highlighting.
 
-This module extracts entity names/keywords from user queries using Google Gemini,
-then intersects them with available graph nodes from LightRAG.
+This module extracts entity names/keywords from user queries using DeepSeek
+(OpenAI-compatible chat API), then intersects them with available graph nodes
+from LightRAG.
 
-Model: Gemini 2.0 Flash via Google AI API
-Latency: 100-300ms
+Model: deepseek-chat via https://api.deepseek.com
+Latency: ~300-600ms
 """
 
-import asyncio
 import os
 import re
 from typing import Dict, List, Optional, Set
 from loguru import logger
 import httpx
 
-try:
-    import google.generativeai as genai
-    GOOGLE_AI_AVAILABLE = True
-except ImportError:
-    GOOGLE_AI_AVAILABLE = False
-    logger.warning("google-generativeai not installed. Graph keyword extraction will fail.")
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 
 class GraphKeywordExtractor:
@@ -31,21 +26,22 @@ class GraphKeywordExtractor:
         api_key: str,
         lightrag_url: str = "",
         lightrag_api_key: str = None,
-        model: str = "gemini-2.0-flash",
+        model: str = "deepseek-chat",
     ):
         """Initialize the keyword extractor.
 
         Args:
-            api_key: Google AI API key
+            api_key: DeepSeek API key
             lightrag_url: LightRAG API base URL
             lightrag_api_key: LightRAG API key for authentication
-            model: Model name (default: gemini-2.0-flash)
+            model: Model name (default: deepseek-chat)
         """
         self.api_key = api_key
         self.lightrag_url = lightrag_url.rstrip("/")
         self.lightrag_api_key = lightrag_api_key or os.getenv("LIGHTRAG_API_KEY", "")
         self.model = model
-        self.client = None
+        # Truthy when an API key is present — used as the "LLM available" guard.
+        self.enabled = bool(api_key)
 
         # Cache for graph nodes
         self._cached_node_ids: Set[str] = set()
@@ -53,15 +49,37 @@ class GraphKeywordExtractor:
         self._cached_node_names: Dict[str, str] = {}   # node_id -> display name
         self._cached_name_to_id: Dict[str, str] = {}   # lowercase name -> node_id
 
-        if not GOOGLE_AI_AVAILABLE:
-            logger.error("Google AI SDK not available. Keyword extraction will fail.")
+        if not self.enabled:
+            logger.error("DeepSeek API key missing. Keyword extraction will fall back to heuristics.")
             return
 
-        # Configure Google AI
-        genai.configure(api_key=api_key)
-        self.client = genai.GenerativeModel(model)
-
         logger.info(f"GraphKeywordExtractor initialized (model: {model}, lightrag: {lightrag_url})")
+
+    async def _complete(self, prompt: str, temperature: float, max_tokens: int) -> str:
+        """Single-shot DeepSeek chat completion. Returns the assistant text, or ''
+        on any error (caller falls back to heuristics)."""
+        if not self.enabled:
+            return ""
+        try:
+            async with httpx.AsyncClient(
+                base_url=DEEPSEEK_BASE_URL,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=15.0,
+            ) as client:
+                r = await client.post(
+                    "/chat/completions",
+                    json={
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    },
+                )
+                r.raise_for_status()
+                return r.json()["choices"][0]["message"]["content"].strip()
+        except Exception as e:  # noqa: BLE001 - best-effort, non-fatal
+            logger.error(f"[GraphKeywords] DeepSeek completion failed: {e}")
+            return ""
 
     async def fetch_graph_nodes(self, force_refresh: bool = False) -> Set[str]:
         """Fetch available graph node IDs from LightRAG.
@@ -134,7 +152,7 @@ class GraphKeywordExtractor:
         if not query or not query.strip():
             return []
 
-        if not self.client:
+        if not self.enabled:
             logger.warning("[GraphKeywords] LLM client not available")
             return []
 
@@ -173,16 +191,11 @@ Rules:
 
 Selected nodes (4-5, ordered by relevance):"""
 
-            response = await asyncio.to_thread(
-                self.client.generate_content,
+            raw_response = await self._complete(
                 prompt.format(nodes=nodes_list, context=context),
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.1,  # Very low for precise selection
-                    max_output_tokens=300,
-                )
+                temperature=0.1,  # Very low for precise selection
+                max_tokens=300,
             )
-
-            raw_response = response.text.strip()
             logger.debug(f"[GraphKeywords] LLM response: {raw_response}")
 
             # Parse comma-separated node names
@@ -239,7 +252,7 @@ Selected nodes (4-5, ordered by relevance):"""
         if not query or not query.strip():
             return {"topic": "", "topicType": "new", "parentTopic": None}
 
-        if not self.client:
+        if not self.enabled:
             # Fallback: extract topic from query
             topic = self._extract_topic_fallback(query)
             return {"topic": topic, "topicType": "new", "parentTopic": None}
@@ -271,20 +284,15 @@ TOPIC: <topic>
 TYPE: <new|continuation|branch>
 PARENT: <parent topic or none>"""
 
-            response = await asyncio.to_thread(
-                self.client.generate_content,
+            raw_response = await self._complete(
                 prompt.format(
                     query=query,
                     answer=answer[:200] if answer else "N/A",
                     prev_context=prev_context
                 ),
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,
-                    max_output_tokens=150,
-                )
+                temperature=0.2,
+                max_tokens=150,
             )
-
-            raw_response = response.text.strip()
             logger.debug(f"[GraphKeywords] Topic extraction response: {raw_response}")
 
             # Parse response
@@ -465,8 +473,8 @@ PARENT: <parent topic or none>"""
         """Get extractor status."""
         return {
             "model": self.model,
-            "provider": "google_ai",
-            "available": GOOGLE_AI_AVAILABLE and self.client is not None,
+            "provider": "deepseek",
+            "available": self.enabled,
             "lightrag_url": self.lightrag_url,
             "cached_nodes": len(self._cached_node_ids),
         }
@@ -483,16 +491,16 @@ def get_graph_keyword_extractor(
     """Get or create global GraphKeywordExtractor instance.
 
     Args:
-        api_key: Google AI API key (required on first call, or from env)
+        api_key: DeepSeek API key (required on first call, or from env)
         lightrag_url: LightRAG API URL (optional, defaults to env or localhost)
     """
     global _extractor
 
     if _extractor is None:
         if api_key is None:
-            api_key = os.getenv("GOOGLE_API_KEY")
+            api_key = os.getenv("DEEPSEEK_API_KEY")
         if api_key is None:
-            raise ValueError("Google API key required to initialize keyword extractor")
+            raise ValueError("DEEPSEEK_API_KEY required to initialize keyword extractor")
 
         if lightrag_url is None:
             lightrag_url = os.getenv("LIGHTRAG_URL", os.getenv("LIGHTRAG_BASE_URL", ""))
