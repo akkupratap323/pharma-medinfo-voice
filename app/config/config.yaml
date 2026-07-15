@@ -234,7 +234,7 @@ personas:
       name: "Grace"
       role: "Front Desk"
       description: "Warm, quick, and organized — gets every caller to the right specialist in under a minute"
-      avatar: "/personas/receptionist.webp"
+      avatar: "/personas/grace.jpg"
       voice_id: "d6b0c62a-c7ff-477c-9a1f-eadd64b94360"  # Melina — bright, warm, friendly English female (warm, quick front desk)
       language: "en"
       tags: ["English", "Female", "Triage"]
@@ -277,7 +277,7 @@ personas:
       role: "Medical Information Specialist"
       rag_scope: "hcp"      # full prescribing information
       description: "Precise, measured, and label-faithful — answers exactly what the prescribing information supports, cites the section, and nothing more"
-      avatar: "/personas/customer-support.webp"
+      avatar: "/personas/claire.jpg"
       voice_id: "cc00e582-ed66-4004-8336-0175b85c85f6"  # Dana — neutral, clear articulation, calm (measured label-exact delivery)
       language: "en"
       tags: ["English", "Female", "HCP", "Medical Information"]
@@ -322,7 +322,7 @@ personas:
       name: "Sam"
       role: "Drug Safety Officer"
       description: "Calm, serious, and thorough — takes adverse event reports with the care they deserve, never rushed, never robotic"
-      avatar: "/personas/sales.webp"
+      avatar: "/personas/sam.jpg"
       voice_id: "d46abd1d-2d02-43e8-819f-51fb652c1c61"  # Grant — reliable, clear, neutral male (calm trust for AE intake)
       language: "en"
       tags: ["English", "Male", "Pharmacovigilance", "Transfer-Only"]
@@ -371,7 +371,7 @@ personas:
       role: "Patient Support Coordinator"
       rag_scope: "patient"  # patient-directed sections only
       description: "Warm and patient — explains things the way a caring nurse would, in plain English, never in jargon"
-      avatar: "/personas/indian-support.webp"
+      avatar: "/personas/sophie.jpg"
       voice_id: "f9836c6e-a0bd-460e-9d3c-f7299fa60f94"  # Caroline — friendly, inviting, caring English female
       language: "en"
       tags: ["English", "Female", "Patient Support"]
@@ -420,7 +420,7 @@ personas:
       role: "Field Team Copilot"
       rag_scope: "hcp"      # full prescribing information
       description: "Brisk, sharp, always label-exact — the prep partner every rep wants ten minutes before walking into a clinic"
-      avatar: "/personas/receptionist.webp"
+      avatar: "/personas/alex.jpg"
       voice_id: "710feaa3-b550-42f3-b3eb-6f37f2a7cc0a"  # Tanner — upbeat, energetic male (brisk rep-prep copilot)
       language: "en"
       tags: ["English", "Male", "Internal", "Field Enablement"]
@@ -458,7 +458,7 @@ personas:
       name: "Emma"
       role: "Clinical Programs Coordinator"
       description: "Friendly, organized, and careful — walks people through eligibility screening without ever raising hopes or making promises"
-      avatar: "/personas/customer-support.webp"
+      avatar: "/personas/emma.jpg"
       voice_id: "f9fc912e-52f0-448a-8bfa-47e9ca75f25a"  # Marilyn — smooth, supportive explainer (pleasant screening calls)
       language: "en"
       tags: ["English", "Female", "Screening", "Clinical Programs"]

@@ -3376,29 +3376,54 @@ body.a2ui-panel-visible .live-subtitle.visible {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 36px rgba(0, 0, 0, 0.09);
 }
 
-/* Banner — light gray zone holding the orb + category pill */
+/* Banner — soft agent-tinted header the portrait sits over */
 .persona-card-banner {
   position: relative;
-  height: 170px;
-  background: #f4f4f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 96px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--agent-color, #4da6ff) 22%, #ffffff) 0%,
+      color-mix(in srgb, var(--agent-color, #4da6ff) 10%, #f4f4f5) 100%);
 }
 
-/* The glossy gradient orb — colorful sphere with soft glow, no letter */
-.persona-orb {
-  width: 96px;
-  height: 96px;
+/* Humanized portrait — circular photo overlapping the banner, ringed in the
+   agent's accent color so each agent keeps a distinct identity. */
+.persona-card-avatar {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin: -52px auto 0;
   border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--agent-color, #4da6ff) 16%, #f4f4f5);
+  border: 4px solid #ffffff;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--agent-color, #4da6ff) 55%, transparent),
+    0 10px 26px color-mix(in srgb, var(--agent-color, #4da6ff) 30%, transparent);
+}
+
+.persona-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Fallback initial (shown only if the portrait fails to load) */
+.persona-card-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #ffffff;
   background:
     radial-gradient(circle at 33% 28%,
-      color-mix(in srgb, var(--agent-color, #4da6ff) 35%, #ffffff) 0%,
-      var(--agent-color, #4da6ff) 55%,
+      color-mix(in srgb, var(--agent-color, #4da6ff) 45%, #ffffff) 0%,
+      var(--agent-color, #4da6ff) 60%,
       color-mix(in srgb, var(--agent-color, #4da6ff) 72%, #000000) 100%);
-  box-shadow:
-    0 18px 44px color-mix(in srgb, var(--agent-color, #4da6ff) 45%, transparent),
-    0 0 60px color-mix(in srgb, var(--agent-color, #4da6ff) 28%, transparent);
 }
 
 /* Category pill — white, top-right of the banner */
@@ -3416,43 +3441,25 @@ body.a2ui-panel-visible .live-subtitle.visible {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* Body */
+/* Body — centered under the portrait */
 .persona-card-body {
-  padding: 1.15rem 1.25rem 1.25rem;
+  padding: 0.85rem 1.25rem 1.25rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   flex: 1;
 }
 
-.persona-card-titlerow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-bottom: 0.8rem;
+.persona-card-titles {
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 0.75rem;
 }
-
-/* Icon chip — small gray rounded square carrying the agent's first letter */
-.persona-card-iconchip {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: #f4f4f5;
-  border: 1px solid #ececee;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0a0a0a;
-  flex-shrink: 0;
-}
-
-.persona-card-titles { min-width: 0; }
 
 .persona-card-name {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #0a0a0a;
   margin: 0;
@@ -3460,9 +3467,9 @@ body.a2ui-panel-visible .live-subtitle.visible {
 }
 
 .persona-card-sub {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: #71717a;
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

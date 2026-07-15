@@ -262,6 +262,19 @@ class VoiceScannerApp {
     trial_coordinator: '#a06bff',
   };
 
+  // Humanized agent portraits — one real headshot per persona, matched to
+  // personality and gender (F: Grace/Claire/Sophie/Emma, M: Sam/Alex).
+  // Keyed by persona id so it resolves whether personas come from the backend
+  // or the local fallback. Self-hosted under client/public/personas/.
+  private static AGENT_PHOTOS: Record<string, string> = {
+    triage: '/personas/grace.jpg',
+    medinfo: '/personas/claire.jpg',
+    drug_safety: '/personas/sam.jpg',
+    patient_support: '/personas/sophie.jpg',
+    field_copilot: '/personas/alex.jpg',
+    trial_coordinator: '/personas/emma.jpg',
+  };
+
   /**
    * Fetch personas from backend and render the 3D carousel selection screen
    */
@@ -277,12 +290,12 @@ class VoiceScannerApp {
 
     // Fallback persona data — mirrors the /personas response (Synthio Labs pharma line, demo: Dupixent)
     const fallbackPersonas = [
-      { id: 'triage', name: 'Grace', role: 'Front Desk', description: 'Warm, quick, and organized — gets every caller to the right specialist in under a minute', avatar: '/personas/receptionist.webp', tags: ['English', 'Female', 'Triage'] },
-      { id: 'medinfo', name: 'Claire', role: 'Medical Information Specialist', description: 'Precise and label-faithful — answers exactly what the prescribing information supports', avatar: '/personas/customer-support.webp', tags: ['English', 'Female', 'HCP'] },
-      { id: 'drug_safety', name: 'Sam', role: 'Drug Safety Officer', description: 'Calm, serious, and thorough — takes adverse event reports with the care they deserve', avatar: '/personas/sales.webp', tags: ['English', 'Male', 'Pharmacovigilance'] },
-      { id: 'patient_support', name: 'Sophie', role: 'Patient Support Coordinator', description: 'Warm, patient, bilingual — explains things the way a caring nurse would', avatar: '/personas/indian-support.webp', tags: ['English', 'Female', 'Patient Support'] },
-      { id: 'field_copilot', name: 'Alex', role: 'Field Team Copilot', description: 'Brisk, sharp, always label-exact — the prep partner every rep wants before a clinic visit', avatar: '/personas/receptionist.webp', tags: ['English', 'Male', 'Internal'] },
-      { id: 'trial_coordinator', name: 'Emma', role: 'Clinical Programs Coordinator', description: 'Friendly and careful — walks people through eligibility screening without ever raising hopes', avatar: '/personas/customer-support.webp', tags: ['English', 'Female', 'Screening'] },
+      { id: 'triage', name: 'Grace', role: 'Front Desk', description: 'Warm, quick, and organized — gets every caller to the right specialist in under a minute', avatar: '/personas/grace.jpg', tags: ['English', 'Female', 'Triage'] },
+      { id: 'medinfo', name: 'Claire', role: 'Medical Information Specialist', description: 'Precise and label-faithful — answers exactly what the prescribing information supports', avatar: '/personas/claire.jpg', tags: ['English', 'Female', 'HCP'] },
+      { id: 'drug_safety', name: 'Sam', role: 'Drug Safety Officer', description: 'Calm, serious, and thorough — takes adverse event reports with the care they deserve', avatar: '/personas/sam.jpg', tags: ['English', 'Male', 'Pharmacovigilance'] },
+      { id: 'patient_support', name: 'Sophie', role: 'Patient Support Coordinator', description: 'Warm, patient, bilingual — explains things the way a caring nurse would', avatar: '/personas/sophie.jpg', tags: ['English', 'Female', 'Patient Support'] },
+      { id: 'field_copilot', name: 'Alex', role: 'Field Team Copilot', description: 'Brisk, sharp, always label-exact — the prep partner every rep wants before a clinic visit', avatar: '/personas/alex.jpg', tags: ['English', 'Male', 'Internal'] },
+      { id: 'trial_coordinator', name: 'Emma', role: 'Clinical Programs Coordinator', description: 'Friendly and careful — walks people through eligibility screening without ever raising hopes', avatar: '/personas/emma.jpg', tags: ['English', 'Female', 'Screening'] },
     ];
 
     let personas = fallbackPersonas;
@@ -313,19 +326,25 @@ class VoiceScannerApp {
       const tags = persona.tags || [];
       const category = tags[tags.length - 1] || 'Agent'; // most specific tag as the pill
       const initial = (persona.name || '?').charAt(0).toUpperCase();
+      // Prefer the known-good per-id portrait; fall back to whatever the
+      // persona payload carries, then to a colored initial if the image 404s.
+      const photo = VoiceScannerApp.AGENT_PHOTOS[persona.id] || persona.avatar || '';
 
       card.innerHTML = `
         <div class="persona-card-banner">
-          <span class="persona-orb"></span>
           <span class="persona-card-pill">${category}</span>
         </div>
+        <div class="persona-card-avatar">
+          ${photo
+            ? `<img class="persona-card-photo" src="${photo}" alt="${persona.name} portrait" loading="lazy"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />`
+            : ''}
+          <span class="persona-card-avatar-fallback"${photo ? ' style="display:none"' : ''}>${initial}</span>
+        </div>
         <div class="persona-card-body">
-          <div class="persona-card-titlerow">
-            <span class="persona-card-iconchip">${initial}</span>
-            <div class="persona-card-titles">
-              <p class="persona-card-name">${persona.name}</p>
-              <p class="persona-card-sub">${persona.role}</p>
-            </div>
+          <div class="persona-card-titles">
+            <p class="persona-card-name">${persona.name}</p>
+            <p class="persona-card-sub">${persona.role}</p>
           </div>
           <p class="persona-card-desc">${persona.description}</p>
           <button class="persona-try-btn" type="button">Try Now</button>
