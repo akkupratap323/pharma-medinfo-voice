@@ -441,6 +441,32 @@ class VoiceScannerApp {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   }
 
+  /**
+   * Show the agent's humanized portrait inside the call-screen avatar circle.
+   * Falls back to the gradient orb + monogram if the image fails to load.
+   */
+  private applyAgentPhoto(personaId: string, name: string): void {
+    const wrap = document.getElementById('agent-avatar-wrap');
+    const monogram = document.getElementById('agent-avatar-monogram');
+    if (!wrap) return;
+    const photo = VoiceScannerApp.AGENT_PHOTOS[personaId] || '';
+    wrap.querySelector('.agent-avatar-photo')?.remove();
+    if (!photo) {
+      if (monogram) monogram.style.display = '';
+      return;
+    }
+    const img = document.createElement('img');
+    img.className = 'agent-avatar-photo';
+    img.src = photo;
+    img.alt = `${name} portrait`;
+    img.onerror = () => {
+      img.remove();
+      if (monogram) monogram.style.display = '';
+    };
+    if (monogram) monogram.style.display = 'none';
+    wrap.appendChild(img);
+  }
+
   private selectPersona(personaId: string): void {
     this.selectedPersonaId = personaId;
     this.log(`Selected persona: ${personaId}`);
@@ -472,6 +498,7 @@ class VoiceScannerApp {
         const accent = VoiceScannerApp.AGENT_COLORS[persona.id] || '#4da6ff';
         agentAvatarWrap.style.setProperty('--agent-accent', accent);
       }
+      this.applyAgentPhoto(persona.id, persona.name);
       if (agentStatus) agentStatus.textContent = 'Connecting...';
 
       // Sync Mission Control header
@@ -620,6 +647,9 @@ class VoiceScannerApp {
 
     document.getElementById('close-option-restart')?.addEventListener('click', () => this.onRestartOption());
     document.getElementById('close-option-peak')?.addEventListener('click', () => this.onPeakOption());
+
+    // Back button (top-left of the call screen) — end the call and return to the agent picker.
+    document.getElementById('session-back-btn')?.addEventListener('click', () => this.onRestartOption());
 
     // Expanded Emotion Analysis: click card to show modal, click backdrop or press Esc to close
     const emotionCard = document.getElementById('dashboard-card-4');
@@ -2291,6 +2321,7 @@ class VoiceScannerApp {
       const accent = VoiceScannerApp.AGENT_COLORS[data.agent_id] || '#4da6ff';
       agentAvatarWrap.style.setProperty('--agent-accent', accent);
     }
+    this.applyAgentPhoto(data.agent_id, data.name);
     if (agentStatus) agentStatus.textContent = data.role;
 
     // Sync Mission Control header

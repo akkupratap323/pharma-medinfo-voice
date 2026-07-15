@@ -11,11 +11,12 @@
 }
 .ins-overlay.visible { display: block; }
 
-/* Trigger — platform pill, top-right (like the "Live Session" indicator) */
+/* Trigger — platform pill, bottom-left (top-right is taken by the call-screen
+   session timer / Back button, so anchor here to avoid overlapping them) */
 .ins-trigger {
   position: fixed;
-  top: 16px;
-  right: 18px;
+  bottom: 20px;
+  left: 20px;
   z-index: 9999;
   display: inline-flex;
   align-items: center;
