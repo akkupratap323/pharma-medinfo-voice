@@ -1,363 +1,266 @@
-# PersonaAI
-
-**Production-ready real-time voice AI with multi-agent personas, hybrid emotion detection, live agent transfer, and dynamic visual UI — all in 1–1.5 second end-to-end latency.**
-
-🔗 **Live Demo:** [https://3.6.92.112.nip.io/](https://3.6.92.112.nip.io/)
-
----
-
-## Screenshots
-
 <div align="center">
-  <img src="docs/images/screenshot1.png" width="85%"/>
-  <br/><br/>
-  <img src="docs/images/screenshot2.png" width="85%"/>
+
+# Synthio Labs — Pharmaceutical Voice AI
+
+**A real-time, voice-first medical-information line for pharma — six specialist agents, label-grounded answers with live on-screen citations, built-in regulatory compliance, adverse-event intake, and post-call intelligence.**
+
+Every answer is spoken *and* shown: the caller hears the agent while a live **A2UI** card renders the exact FDA-label section behind it — so the visual can never disagree with the voice.
+
+[![Live Demo](https://img.shields.io/badge/demo-live-22c55e?style=for-the-badge)](https://13-57-55-34.sslip.io)
+&nbsp;
+![Pipecat](https://img.shields.io/badge/Pipecat-0.0.98-4da6ff?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-Vite-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+
+### 🔗 [**Try the live demo → https://13-57-55-34.sslip.io**](https://13-57-55-34.sslip.io)
+
+*Open in Chrome/Safari and allow the microphone. Demo drug: **Dupixent® (dupilumab)**, grounded in the public FDA label.*
+
 </div>
 
 ---
 
-## What Is This?
-
-PersonaAI is a full-stack voice conversational assistant built on the [Pipecat](https://github.com/pipecat-ai/pipecat) framework (v0.0.98). You speak — the AI listens, understands your emotion, thinks, responds with the right voice, and optionally renders a live visual UI card — all in real time.
-
-It supports **6 distinct AI agent personas**, each with their own voice, personality, and domain expertise. Agents are aware of each other and can **transfer mid-call** — the old agent says a connecting line, the new agent picks up with full context of your conversation.
-
----
-
-## Core Features
-
-### 6 Expert AI Agents (Fully Interconnected)
-
-Every agent knows every other agent and can transfer you mid-call. Voice changes instantly. The new agent receives context of what you were discussing and picks up naturally — no awkward restarts.
-
-| Agent | Role | Specialty | Language |
-|-------|------|-----------|----------|
-| **Brooke** | General Assistant | Knows a bit about everything, connects you to the right person | English |
-| **Blake** | Problem Solver | Troubleshooting — tech issues, broken workflows, stuck decisions | English |
-| **Arushi** | Hinglish All-Rounder | Warm desi assistant — science to Bollywood, all in Hinglish | Hinglish |
-| **Morgan** | Business Strategist | Strategy, sales, fundraising, go-to-market, negotiation | English |
-| **Daniel** | Tech Expert | Coding, AI/ML, distributed systems, cloud infra, voice AI | English |
-| **Naya** | Lifestyle Coach | Health, fitness, travel, food, self-improvement, relationships | English |
-
-**How live agent transfer works:**
-1. Any agent can call `transfer_to_agent()` mid-conversation
-2. The old agent speaks a brief handoff line: *"Let me connect you with Daniel — this is his territory."*
-3. The LLM system prompt swaps silently to the new agent's persona
-4. TTS voice switches in real time via `tts.set_voice(voice_id)` — no reconnect, no reload
-5. The orb color, avatar, and UI accent all update on the frontend instantly
-6. The new agent picks up with full context: *"Brooke filled me in — you were asking about distributed caching, right?"*
+<div align="center">
+  <img src="docs/images/agent-selection.png" width="90%" alt="Choose your agent — six pharma voice personas"/>
+  <br/><br/>
+  <em>Six specialist agents. Pick one and talk — or let them route you to the right expert mid-call.</em>
+</div>
 
 ---
 
-### Hybrid Emotion Detection (Original Research)
+## What is this?
 
-The core research contribution of this project: a **two-channel, weighted fusion emotion detection system** that runs non-blocking in the background — adding zero latency to the voice pipeline.
+Synthio Labs is a production-style **voice medical-information contact line** for a pharmaceutical company. A caller — a physician, a patient, a field rep, or someone reporting a side effect — speaks naturally. The system routes them to the right specialist agent, answers **only** from the approved FDA label, renders the cited section on screen in real time, enforces pharma compliance rules on every turn, captures adverse events properly, and turns every completed call into structured business intelligence.
 
-#### Architecture
+It is built on the [Pipecat](https://github.com/pipecat-ai/pipecat) voice framework (v0.0.98) with a **~1–1.5 s end-to-end latency** target, and runs 24/7 on a single 2 GB cloud VM.
 
-```
-Audio Frames ──► MSP-PODCAST wav2vec2 ──► arousal, dominance, valence
-                    (70% weight)
-                                         \
-                                          ──► Weighted Fusion ──► Emotion Label ──► Voice Switch
-                                         /
-Text Transcription ──► Google Gemini ──► text sentiment
-                         (30% weight)
-```
+### Why it's different
 
-#### Channel 1: Audio Emotion (MSP-PODCAST wav2vec2)
-
-- **Model:** `audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim`
-- **Training data:** MSP-Podcast v1.7 — real podcast conversations (not acted speech)
-- **Output:** Dimensional emotions — arousal (0–1), dominance (0–1), valence (0–1)
-- **Why dimensional?** Categorical models (happy/sad/angry) trained on acted datasets fail on natural conversational speech. Dimensional models trained on real conversations generalize far better to real-world prosody.
-- **Optimizations for 4GB RAM / 2 vCPU Lightsail:**
-  - INT8 dynamic quantization → 2–3x faster inference, 75% smaller model footprint
-  - Thread tuning: 2 threads matches vCPU count, prevents CPU thrashing
-  - Intel MKL-DNN enabled for Lightsail's Intel Xeon CPUs
-  - Periodic GC to prevent memory fragmentation on long sessions
-
-#### Channel 2: Text Sentiment (Google Gemini Flash)
-
-- **Model:** Gemini 2.0 Flash via Google AI API
-- **Input:** Raw transcription text
-- **Output:** Sentiment label + confidence score
-- **Role:** Catches masked emotion — someone saying "I'm fine" in a frustrated voice. Audio captures the frustration; text captures the literal words. Fusion resolves the conflict.
-
-#### Fusion Logic
-
-```
-final_emotion = (audio_result × 0.7) + (text_result × 0.3)
-```
-
-Dynamic weight adjustment when confidence is low. Mismatch detection threshold at 0.8 — when audio and text strongly disagree (potential sarcasm), both signals are flagged and the system uses a conservative fallback.
-
-#### Dimensional → Voice Tone Mapping
-
-| Arousal | Valence | Mapped Tone |
-|---------|---------|-------------|
-| High | Low (negative) | frustrated |
-| High | High (positive) | excited |
-| Low | Low (negative) | sad |
-| Low | High (positive) | neutral / calm |
-
-#### Stability System
-
-- Emotions require **2-frame stability** before triggering a voice switch (prevents jitter from transient readings)
-- Detected emotions have a **10-second TTL** — stale readings don't persist across long silences
-- Voice switching is non-blocking: background async tasks, pipeline never waits for emotion inference
+| | |
+|---|---|
+| 🎙️ **Voice + visual, always in sync** | Answers are spoken by the agent and simultaneously rendered as a live **A2UI card** built *from the retrieved label text itself* — the on-screen citation can never drift from what was said. |
+| 📖 **Label-grounded, never hallucinated** | Every clinical answer is retrieved verbatim from the FDA label via a graph RAG, with an explicit "quote exact figures, don't paraphrase" directive. No general-knowledge answers — if the label doesn't cover it, the agent says so and offers medical-affairs follow-up. |
+| 🛡️ **Compliance on every turn** | A two-tier gate classifies each caller turn (off-label / adverse-event / on-label) and injects guardrails *before* the agent responds — Section 4 contraindications are never conflated with Section 5 warnings. |
+| 🔀 **Live agent handoff** | Agents transfer mid-call: the outgoing line finishes cleanly in its own voice, then the incoming agent — new voice, new persona — picks up the *task* it was routed for, not a generic "how can I help you?". |
+| 🚨 **Adverse-event intake** | Any side-effect mention anywhere routes to the Drug Safety Officer, who captures a structured ICH four-element report with a generated report ID. |
+| 📊 **Post-call intelligence** | Every finished call is mined into intents, emotions (start → end), label gaps, competitor mentions, access barriers, and KPIs — the "fourth pillar" that turns a call center into a data asset. |
+| ✅ **Benchmarked, not vibes** | A 27-case rubric + a 10-case adversarial red-team suite, judged by an LLM, ship in-repo and render live in the dashboard. |
 
 ---
 
-### Voice Pipeline (Pipecat)
+## Post-call intelligence dashboard
+
+Every completed call becomes structured data — and the same panel surfaces the live **eval scorecard**.
+
+<div align="center">
+  <img src="docs/images/insight-dashboard.png" width="92%" alt="Insight Dashboard — post-call intelligence and eval scorecard"/>
+</div>
+
+Captured per call: **medical intent** (taxonomy), **caller type**, **emotion arc** (start → end, de-escalation %), **label gaps** (questions the label couldn't answer — a content roadmap), **competitor mentions**, **access/cost barriers**, plus KPIs (resolution, AE flags). Served from `/insights`, `/insights/summary`, and `/insights/evals`; polled live by the dashboard.
+
+---
+
+## The six agents
+
+Each agent has a distinct voice (Cartesia), personality, retrieval scope, and set of guardrails. They know about each other and transfer via `transfer_to_agent()`.
+
+| Agent | Role | Scope | What they do |
+|-------|------|-------|--------------|
+| **Grace** | Front Desk (Triage) | — | Warm, fast router — identifies the caller and connects them to the right specialist in under a minute. |
+| **Claire** | Medical Information Specialist | HCP (full label) | Precise, label-faithful answers for verified healthcare professionals — cites the section, nothing more. |
+| **Sam** | Drug Safety Officer | — *(transfer-only)* | Calm, thorough adverse-event intake. Every side-effect mention, from anyone, routes here. |
+| **Sophie** | Patient Support Coordinator | Patient (patient-directed sections) | Warm, plain-English support for people prescribed the drug — never jargon, never medical advice. |
+| **Alex** | Field Team Copilot | HCP (full label) | Internal prep partner for reps/MSLs before an HCP visit — brisk, label-exact. |
+| **Emma** | Clinical Programs Coordinator | — | Friendly eligibility pre-screening for studies/support programs — never over-promises. |
+
+**Routing spine:** any real-world side-effect mention → **Sam**, always. Clinical/label questions from HCPs → **Claire**. Patient usage/support → **Sophie**.
+
+### How live handoff works
+
+1. An agent calls `transfer_to_agent(agent_id)` and says one short connecting line.
+2. That line finishes synthesizing **in the outgoing agent's voice** (a flush delay guarantees no bleed).
+3. The system prompt swaps to the new persona and the Cartesia voice switches (`tts.set_voice`).
+4. A **handoff-timeline** A2UI card renders the routing trail (Grace → Claire → Sam, with reasons).
+5. The new agent's LLM speaks next — queued *after* the connecting line (no overlap) — and **continues the routed task directly**, calling the RAG if it needs the label.
+
+---
+
+## A2UI — voice-driven visual proof
+
+When an agent answers, it can render a **deterministic** visual card built from the same data it just spoke. Because the card is generated from the retrieved label text (not a separate LLM pass), the visual is always faithful to the answer.
+
+| Card | Renders |
+|------|---------|
+| `label-citation` | The exact FDA-label section behind the answer (e.g. **Section 4 · Contraindications**), with HCP/patient scope. |
+| `dosing-table` | Structured loading/maintenance dosing by population — **only** for genuine dosing questions (Section 2). |
+| `compliance-badge` | The compliance-gate verdict for the turn (on-label / off-label / adverse-event). |
+| `handoff-timeline` | The agent routing trail with the reason for each hop. |
+| `ae-report-card` | The captured adverse-event report (four ICH elements + report ID). |
+| `insight-panel` | End-of-call summary — intent, emotion arc, resolution. |
+
+Template selection for the general A2UI path is a 3-tier system: **explicit keyword → semantic (OpenAI embeddings) → fallback**.
+
+---
+
+## Voice pipeline
 
 ```
-Mic Input
-  │
-  ▼
-[Silero VAD] (conf=0.92 — only clear direct speech triggers)
-  │
-  ▼
-[Deepgram Nova-3 STT] (streaming, 300ms endpointing for SmartTurn)
-  │
-  ▼
-[ToneAwareProcessor] ← MSP-PODCAST + Gemini hybrid emotion (background async)
-  │
-  ▼
-[STTMuteFilter] (mutes STT during initial greeting — prevents self-interruption)
-  │
-  ▼
-[SmartTurn v3] (ONNX ML end-of-turn detection — replaces silence heuristics)
-  │
-  ▼
-[LLM Context Aggregator + DeepSeek V3]
-  │
-  ├─► call_rag_system()     → LightRAG → Answer + optional A2UI visual card
-  ├─► transfer_to_agent()   → Live agent swap (voice + persona + context)
-  └─► end_conversation()    → Farewell TTS + graceful disconnect
-  │
-  ▼
-[VisualHintProcessor] (word-by-word streaming to frontend for A2UI)
-  │
-  ▼
-[TextFilterProcessor] (strips markdown before TTS)
-  │
-  ▼
-[Cartesia Sonic-3 TTS] (word-level timestamps, emotion voice control)
-  │
-  ▼
-Audio Output
+ Mic ──► Silero VAD ──► Deepgram Flux STT ──► Compliance Gate ──► LLM Context
+                         (native end-of-turn)   (AE / off-label      + DeepSeek
+                                                  classification)         │
+                                                                          ▼
+                       ┌──────────────────────────────────────────────────┐
+                       │  function calls                                    │
+                       │   • call_rag_system()   → LightRAG (HCP|patient)   │
+                       │                           → verbatim label + card  │
+                       │   • report_adverse_event() → ICH report + AE card  │
+                       │   • transfer_to_agent()  → live voice/persona swap │
+                       │   • end_conversation()   → farewell + insight card │
+                       └──────────────────────────────────────────────────┘
+                                                                          │
+        Audio out ◄── Cartesia Sonic-3 TTS ◄── TextFilter ◄── VisualHint ◄┘
+                        (per-persona voice)      (strip md)   (stream A2UI)
 ```
 
-**Key design decisions:**
-- **Silero VAD over Deepgram VAD** — local control; Deepgram VAD caused false interruptions
-- **SmartTurn v3 ONNX** — replaces simple silence detection with ML end-of-turn prediction
-- **Non-blocking emotion** — background async tasks, zero pipeline latency impact
-- **Immediate barge-in** (`min_words=0`) — any speech stops TTS instantly
-- **CPU-only PyTorch** — fits 2GB RAM constraint on $12/month Lightsail instance
-- **Connection pooling** — shared `httpx` async client for LightRAG queries
+**Retrieval routing** (shared by the live pipeline *and* the eval harness, so they can't diverge):
+
+- **Contraindication** → narrow retrieval (keeps Section 4 dominant; prevents listing Section 5 warnings as contraindications)
+- **Dosing / storage / administration** → wide verbatim retrieval (surface exact figures — `600 mg` never becomes `100 mg`)
+- **Everything else** → moderate retrieval + "answer only from the label" directive
+
+All queries use **raw label context** (`only_need_context`) — LightRAG's server-side generation is skipped because the voice LLM re-generates the spoken answer anyway (dropped a measured 21 s → ~3 s).
 
 ---
 
-### A2UI — Voice-Driven Visual Cards
-
-When the LLM answers a query through RAG, it can also trigger a **dynamic visual card** rendered in the frontend — no user action needed. The card appears alongside the voice response.
-
-Template selection uses a 3-tier system:
-1. **Explicit keyword match** — fast, pattern-based detection
-2. **Semantic match** — MiniLM sentence transformer for fuzzy intent matching
-3. **Fallback** — `simple-card` default
-
-Available templates: `simple-card`, `template-grid`, `timeline`, `contact-card`, `comparison-chart`, `stats-flow-layout`, `team-flip-cards`, `service-hover-reveal`, `magazine-hero`, `faq-accordion`, `image-gallery`, `video-gallery`, `sales-dashboard`
-
----
-
-### RAG (Retrieval-Augmented Generation)
-
-Knowledge queries route through **LightRAG** — a graph-based RAG system that understands entity relationships, not just keyword similarity.
-
-- Streaming response via `/query/stream`
-- Non-streaming fallback via `/query`
-- Authenticated with `X-API-Key` header
-- Connection pooling via shared `httpx` async client
-
----
-
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Voice Pipeline** | Pipecat v0.0.98 |
-| **STT** | Deepgram Nova-3 |
-| **LLM** | DeepSeek V3 (`deepseek-chat`) |
-| **TTS** | Cartesia Sonic-3 (word timestamps + emotion control) |
-| **Audio Emotion** | MSP-PODCAST wav2vec2 (`audeering/wav2vec2-large-robust-12-ft-emotion-msp-dim`) |
-| **Text Sentiment** | Google Gemini 2.0 Flash |
-| **Fusion** | Custom 70/30 weighted hybrid detector |
-| **RAG** | LightRAG (graph-based) |
-| **Turn Detection** | SmartTurn v3 ONNX |
-| **VAD** | Silero VAD (conf=0.92) |
+| **Voice framework** | Pipecat 0.0.98 |
+| **STT** | Deepgram **Flux** (native end-of-turn detection) |
+| **LLM** | DeepSeek (`deepseek-chat`) |
+| **TTS** | Cartesia **Sonic-3** (per-persona voice IDs) |
+| **RAG** | LightRAG — **two scoped instances** (HCP :9621 full label, patient :9622 patient sections) |
+| **Embeddings / RAG LLM** | OpenAI `text-embedding-3-small` + `gpt-4o-mini` |
+| **Compliance classifier** | Groq `llama-3.1-8b-instant` (tier-2) |
+| **Insights / topic extraction** | Groq `llama-3.3-70b` (insights) · DeepSeek (graph keywords) |
+| **VAD** | Silero |
 | **Backend** | FastAPI + uvicorn |
-| **Frontend** | TypeScript + Vite |
-| **Real-time Transport** | Pipecat RTVI WebSocket |
-| **Deployment** | Docker + Caddy (auto-HTTPS) on AWS Lightsail |
-| **CI/CD** | GitHub Actions → GHCR → SSH deploy |
+| **Frontend** | TypeScript + Vite (no framework runtime) |
+| **Transport** | Pipecat WebSocket (`/ws`) |
+| **Deploy** | AWS EC2 · systemd · Caddy (auto-HTTPS) |
+
+> **Memory-optimized for a 2 GB box:** emotion detection is disabled and `torch`/`transformers`/`sentence-transformers` are optional — A2UI template selection uses the OpenAI embeddings API instead of a local model. Backend footprint ≈ 450 MB, no PyTorch.
 
 ---
 
-## Architecture
+## Evaluation
 
-```
-Browser (TypeScript/Vite)
-    │
-    │  WebSocket (/ws) — Pipecat RTVI Protocol
-    │
-FastAPI (app/main.py) — port 7860
-    │
-    ├─ Pipecat Pipeline (per session)
-    │   ├─ STT: Deepgram Nova-3
-    │   ├─ LLM: DeepSeek V3
-    │   ├─ TTS: Cartesia Sonic-3
-    │   ├─ Emotion: HybridEmotionDetector (background async)
-    │   │   ├─ MSP-PODCAST wav2vec2 (audio channel, 70%)
-    │   │   └─ Gemini Flash (text channel, 30%)
-    │   ├─ Turn: SmartTurn v3 ONNX
-    │   └─ A2UI: VisualHintProcessor → frontend card render
-    │
-    ├─ Session Management
-    │   ├─ ConnectionManager (max 20 concurrent sessions)
-    │   ├─ Per-session VoiceAssistant isolation
-    │   └─ Live agent transfer (in-session swap, no reconnect)
-    │
-    └─ External Services
-        ├─ LightRAG (graph RAG server)
-        ├─ Deepgram (STT streaming API)
-        ├─ Cartesia (TTS API)
-        └─ Google AI (Gemini text sentiment)
-```
+Two suites ship in [`tests/evals/`](tests/evals/) and render live in the dashboard. Judge: `deepseek-chat` (dev mode — directional; certify with `JUDGE_MODE=final`).
 
----
+**Content baseline** — 27 cases · [`report.md`](tests/evals/report.md)
 
-## Running Locally
+| metric | score | | metric | score |
+|---|---|---|---|---|
+| answered = yes | **26/27** | | tone & empathy (1-5) | **4.85** |
+| factual accuracy (1-5) | **4.93** | | regulatory compliance | **27/27** |
+| completeness (1-5) | **4.63** | | routing correctness | **12/12** |
+| answerability handled | **27/27** | | context awareness (multi-turn) | **5.0** |
 
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- API keys: `DEEPGRAM_API_KEY`, `DEEPSEEK_API_KEY`, `CARTESIA_API_KEY`, `CARTESIA_VOICE_ID`, `GOOGLE_API_KEY`, `LIGHTRAG_API_KEY`, `LIGHTRAG_BASE_URL`
-
-### Backend
+**Adversarial red-team** — 10 hostile callers (off-label bait, AE probing, jailbreaks) · [`report_sim_results.md`](tests/evals/report_sim_results.md) → **9/10 compliance**. Failures are reported, not hidden.
 
 ```bash
+python tests/evals/run_eval.py      # content baseline → report.md
+python tests/evals/simulate.py      # adversarial red-team → report_sim_results.md
+```
+
+---
+
+## Run it locally
+
+**Prerequisites:** Python 3.12+, Node 20+, and a local LightRAG server. API keys:
+`DEEPGRAM_API_KEY`, `DEEPSEEK_API_KEY`, `CARTESIA_API_KEY`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `LIGHTRAG_API_KEY`, `LIGHTRAG_BASE_URL_HCP`, `LIGHTRAG_BASE_URL_PATIENT`.
+
+```bash
+# 1. Backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # Fill in your API keys
+cp .env.example .env                 # fill in keys
 export PYTHONPATH=$(pwd)
-python app/main.py             # → http://localhost:7860
+export NO_PROXY=localhost,127.0.0.1  # macOS: let httpx reach local LightRAG
+python app/main.py                   # → http://localhost:7860
+
+# 2. Ingest the Dupixent FDA label into the two RAG scopes
+python scripts/ingest_dupixent.py --fetch
+python scripts/ingest_dupixent.py --ingest hcp
+python scripts/ingest_dupixent.py --ingest patient
+
+# 3. Frontend
+cd client && npm install
+npm run dev                          # → http://localhost:5173
 ```
 
-### Frontend
-
-```bash
-cd client
-npm install
-npm run dev                    # → http://localhost:5173
-npm run build                  # Production build
-npm run typecheck              # TypeScript type checking
-```
-
-### Tests
-
-```bash
-pytest tests/                  # All tests
-pytest tests/unit/             # Unit tests only
-pytest tests/integration/      # Integration tests only
-```
-
----
-
-## Docker Deployment
-
-```bash
-cd deployment/docker
-docker-compose -f docker-compose.https.yml up -d
-```
-
-Caddy handles auto-HTTPS (Let's Encrypt via nip.io). Backend on port 7860, frontend on 80/443.
-
----
-
-## Configuration
-
-All settings live in `app/config/config.yaml`, loaded at startup with `${ENV_VAR}` substitution from `.env`.
-
-Key sections:
-
-| Section | What it controls |
-|---------|-----------------|
-| `conversation.system_prompt` | Default agent (Brooke) system prompt |
-| `personas.agents` | All 6 agent definitions — voice ID, personality, greetings |
-| `server.vad` | VAD confidence and volume thresholds |
-| `server.smart_turn` | SmartTurn ONNX timeout and CPU settings |
-| `server.emotion_detection_enabled` | Toggle hybrid emotion detection |
-| `a2ui` | Template tier mode, confidence threshold, streaming |
-| `stt.config` | Deepgram streaming settings, corrections |
-
----
-
-## Project Structure
-
-```
-app/
-├── main.py                          # FastAPI entrypoint
-├── core/
-│   ├── voice_assistant.py           # Pipeline assembly + agent transfer wiring
-│   └── server.py                    # WebSocket server + session management
-├── services/
-│   ├── conversation.py              # LLM context, function calling, agent transfer logic
-│   ├── msp_emotion_detector.py      # MSP-PODCAST wav2vec2 audio emotion (INT8 quantized)
-│   ├── hybrid_emotion_detector.py   # 70/30 fusion of audio + text sentiment
-│   ├── llm_text_sentiment.py        # Google Gemini text sentiment
-│   ├── rag.py                       # LightRAG graph RAG integration
-│   └── a2ui/                        # Agentic UI — template selection + rendering
-├── processors/
-│   ├── tone_aware_processor.py      # Emotion detection + Cartesia voice switching
-│   ├── smart_interruption.py        # Context-aware barge-in (disabled — StartFrame bug)
-│   └── text_filter.py               # Strips markdown before TTS
-└── config/
-    ├── config.yaml                  # All configuration (env var substitution)
-    └── loader.py                    # Config loader with ${VAR} substitution
-
-client/src/
-├── app.ts                           # Main app — RTVI client, agent transfer, orb, UI
-├── components/
-│   ├── EmotionAnalysisWidget/       # Live emotion visualization panel
-│   ├── KnowledgeGraphWidget/        # RAG knowledge graph (Sigma.js + Graphology)
-│   ├── SynchronizedAnalysisWidget/  # Topic flow analysis
-│   └── a2ui/                        # A2UI visual card renderers
-└── style.css                        # Agent color theming + transfer animations
-```
-
----
-
-## Known Limitations
-
-- `SmartInterruptionProcessor` disabled — StartFrame ordering bug (fix in progress)
-- AIC Speech Enhancement disabled — SDK v1/v2 mismatch
-- MSP-PODCAST model falls back to text-only emotion on newer `transformers` versions
-- INT8 quantization not supported on Apple Silicon (M1/M2/M3) — skipped automatically
-- Koala noise suppression requires paid API key; WebRTC AEC used as free fallback
+Tests: `pytest tests/` · type-check the frontend: `npm run typecheck`.
 
 ---
 
 ## Deployment
 
-**Live:** [https://3.6.92.112.nip.io/](https://3.6.92.112.nip.io/)  
-**Infrastructure:** AWS Lightsail — $12/month (2GB RAM, 2 vCPU, 60GB SSD, 1.5TB transfer)  
-**CI/CD:** GitHub Actions → Docker build → push to GHCR → SSH pull + restart  
-**HTTPS:** Caddy with automatic Let's Encrypt via nip.io  
-**RAM management:** 2GB swap + INT8 quantization for model loading on constrained hardware
+Runs 24/7 on **AWS EC2** (`t3.small`, us-west-1, 2 GB) — one-command bootstrap in [`deploy/`](deploy/):
+
+- **systemd** — three units: `synthio-backend`, `synthio-lightrag-hcp`, `synthio-lightrag-patient`
+- **Caddy** — reverse proxy + static SPA + automatic HTTPS (Let's Encrypt via a `sslip.io` domain, so the mic works with no real domain)
+- **bootstrap.sh** — provisions venvs, ingests the label, builds the frontend, wires the services
+
+```bash
+git clone <repo> /opt/synthio
+cp deploy/.env.production.example /opt/synthio/.env   # fill keys, chmod 600
+sudo bash /opt/synthio/deploy/bootstrap.sh            # → https://<ip-dashed>.sslip.io
+```
 
 ---
 
+## Project structure
 
+```
+app/
+├── main.py                          # FastAPI entrypoint
+├── core/
+│   ├── voice_assistant.py           # pipeline assembly + A2UI/compliance/transfer wiring
+│   ├── server.py                    # WebSocket server
+│   └── connection_manager.py        # session cap (env-configurable)
+├── services/
+│   ├── conversation.py              # function calling — RAG, AE report, transfer, end
+│   ├── rag.py                       # scoped LightRAG (verbatim raw-context retrieval)
+│   ├── rag_routing.py               # shared retrieval policy (contraindication/dosing/general)
+│   ├── insight_capture.py           # post-call intelligence extraction
+│   ├── graph_keywords.py            # topic timeline / node selection (DeepSeek)
+│   └── a2ui/
+│       ├── pharma_cards.py          # deterministic pharma cards (label-citation, dosing, …)
+│       ├── orchestrator.py          # 3-tier template selection
+│       └── semantic_selector.py     # OpenAI-embedding template matching
+├── processors/
+│   └── compliance_gate_processor.py # 2-tier AE / off-label gate
+└── config/config.yaml               # personas, voices, STT/RAG config (${ENV} substitution)
+
+client/src/
+├── app.ts                           # agent grid, call screen, live handoff, A2UI mount
+└── components/
+    ├── a2ui/                        # pharma card renderers
+    └── InsightsDashboard/           # post-call intelligence + eval scorecard
+
+tests/evals/                         # 27-case rubric + adversarial red-team + LLM judge
+scripts/ingest_dupixent.py           # openFDA label fetch → scoped LightRAG ingest
+deploy/                              # systemd units, Caddyfile, bootstrap
+```
+
+---
+
+## Compliance & safety notes
+
+- Answers are drawn **only** from the approved label; the agent refuses and offers medical-affairs follow-up when the label doesn't cover a question.
+- Contraindications (Section 4) are explicitly separated from Warnings & Precautions (Section 5).
+- Any adverse-event mention is routed to structured intake — the agent never assesses causation or gives medical advice.
+- This is a **demonstration** on public FDA labeling for **Dupixent® (dupilumab)**; no real studies are enrolled and no PII should be submitted. Dupixent is a registered trademark of its respective owner; this project is not affiliated with or endorsed by the manufacturer.
+</content>
+</invoke>
