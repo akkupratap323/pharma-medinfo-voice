@@ -171,6 +171,10 @@ class ComplianceGateProcessor(FrameProcessor):
                 "follow-up. If you are not the medical information agent, transfer "
                 "to 'medinfo' instead of answering."
             )
+        else:
+            # On-label or non-clinical: an earlier directive described an earlier
+            # message and must not keep steering (or transferring) this answer.
+            self._inject(None)
 
     async def _classify_llm(self, text: str) -> str:
         if self._client is None:
@@ -204,15 +208,18 @@ class ComplianceGateProcessor(FrameProcessor):
         """Register the callback that pushes the compliance-badge A2UI doc."""
         self._on_a2ui = callback
 
-    def _inject(self, directive: str) -> None:
+    def _inject(self, directive: Optional[str]) -> None:
+        """Replace any previous gate directive with `directive` (None just clears)."""
         messages = self._get_context_messages()
         if messages is None:
-            logger.warning("ComplianceGate: no context available, directive dropped")
+            if directive:
+                logger.warning("ComplianceGate: no context available, directive dropped")
             return
-        # Replace any previous gate directive so they never accumulate.
+        # Drop any previous gate directive so they never accumulate or go stale.
         messages[:] = [
             m for m in messages
             if not (m.get("role") == "system" and str(m.get("content", "")).startswith("[COMPLIANCE GATE]"))
         ]
-        messages.append({"role": "system", "content": directive})
-        logger.info("🛡️ ComplianceGate directive injected")
+        if directive:
+            messages.append({"role": "system", "content": directive})
+            logger.info("🛡️ ComplianceGate directive injected")
