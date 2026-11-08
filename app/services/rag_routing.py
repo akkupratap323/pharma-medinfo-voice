@@ -14,11 +14,14 @@ diverge from production behavior — the exact bug this module exists to prevent
 import re
 
 # Questions that must read raw label text, never a paraphrase.
+# Word forms matter: the pattern ends in \b, so "dosages", "dosed", "milligrams",
+# "inject" or "300mg" fall through to the general path unless spelled out here.
+# Every DOSING_RE match must also match this (dosing is a subset of factual).
 FACTUAL_LOOKUP_RE = re.compile(
-    r"\b(dos(?:e|es|ing|age)|mg|milligram|loading dose|maintenance|"
-    r"how (?:much|often)|frequency|interval|every \w+ weeks|q2w|q4w|"
-    r"contraindicat\w+|administ\w+|inject\w+|stor(?:e|es|ed|age)|refrigerat\w+|"
-    r"how (?:is it )?supplied|concentration|strength)\b",
+    r"\b(dos(?:e|es|ed|ing|ages?)|mg|\d+\s*mg|milligrams?|loading dose|maintenance|"
+    r"how (?:much|many mg|often)|frequency|intervals?|every \w+ weeks?|weight[- ]based|"
+    r"q2w|q4w|contraindicat\w+|administ\w+|inject\w*|stor(?:e|es|ed|ing|age)|"
+    r"refrigerat\w+|how (?:is it )?supplied|concentrations?|strengths?)\b",
     re.IGNORECASE,
 )
 
@@ -34,7 +37,7 @@ CONTRAINDICATION_RE = re.compile(r"\bcontraindicat\w+\b", re.IGNORECASE)
 # question, never for a contraindication/storage/admin answer that merely happens
 # to contain a mg figure (that mis-cited Section 4 answers as a Section-2 table).
 DOSING_RE = re.compile(
-    r"\b(dos(?:e|es|ing|age)|milligram|loading dose|maintenance dose|maintenance|"
+    r"\b(dos(?:e|es|ed|ing|ages?)|milligrams?|loading dose|maintenance dose|maintenance|"
     r"how (?:much|many mg)|q2w|q4w|every \w+ weeks?|weight[- ]based|\d+\s*mg)\b",
     re.IGNORECASE,
 )
