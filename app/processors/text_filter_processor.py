@@ -11,6 +11,18 @@ from loguru import logger
 from pipecat.frames.frames import Frame, TextFrame, StartFrame, EndFrame, CancelFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 
+# A comparison before a number ("CrCl <30", ">= 18") or standing alone at the
+# end of a streamed chunk (" <" then "30"). Dosing limits depend on it, so it is
+# spoken as words instead of being dropped with the other angle brackets.
+_COMPARISON_BEFORE_NUMBER = re.compile(r'(<=|>=|<|>)\s*(?=\.?\d)')
+_LONE_COMPARISON = re.compile(r'(?:^|(?<=\s))(<=|>=|<|>)\s*$')
+_COMPARISON_WORDS = {
+    '<=': ' less than or equal to ',
+    '>=': ' greater than or equal to ',
+    '<': ' less than ',
+    '>': ' greater than ',
+}
+
 # Phrases that signal laughter — bot will inject [laughter] before the next word
 _LAUGHTER_TRIGGERS = re.compile(
     r'\b('
@@ -124,6 +136,9 @@ class TextFilterProcessor(FrameProcessor):
         # Escape XML/SSML special characters to prevent TTS errors
         # The & character must be escaped FIRST (before other escapes that use &)
         text = text.replace('&', ' and ')  # Replace & with "and" for natural speech
+        # Speak comparisons ("<30" → "less than 30") before dropping other brackets
+        for pattern in (_COMPARISON_BEFORE_NUMBER, _LONE_COMPARISON):
+            text = pattern.sub(lambda m: _COMPARISON_WORDS[m.group(1)], text)
         text = text.replace('<', ' ')  # Replace < with space (preserves word boundaries)
         text = text.replace('>', ' ')  # Replace > with space (preserves word boundaries)
 
